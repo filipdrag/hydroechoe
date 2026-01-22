@@ -1,4 +1,4 @@
-#DEFINE NO_INPUTS 2
+#define NO_INPUTS 2
 #define NO_OUTPUTS 3
 
 #define WH_PIN A0 //TODO change for ESP32
@@ -62,9 +62,8 @@ void loop() {
     
     int reading = analogRead(LS_PIN);
     int mVolt = map(reading, 0, 1023, 0, 5000); // map analogue reading to 5000mV
-    float volt = (double)mVolt / 1000; // convert millivolt to volt
 
-    isMurky = volt > LS_THRESHOLD;
+    ls_isMurky = mVolt > LS_THRESHOLD;
 
     Serial.print(mVolt);
     Serial.print(" mV ");
@@ -72,4 +71,5 @@ void loop() {
     else { Serial.print("Clear"); }
   }
 
+  concurrency_input = (concurrency_input + 1) % NO_INPUTS;
 }
