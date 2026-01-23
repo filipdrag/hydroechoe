@@ -30,7 +30,7 @@ bool ls_isMurky = false;
 
 void setup() {
   //WATER HISTOGRAM
-  pinMode(WH_PIN, INPUT); //TODO change for ESP32
+  pinMode(WH_PIN, INPUT); 
   Serial.begin(9600);
 
   start = &wh_measurements_queue[0];
@@ -72,4 +72,9 @@ void loop() {
   }
 
   concurrency_input = (concurrency_input + 1) % NO_INPUTS;
+
+  if(concurerncy_output == 0) {
+    Serial.print()
+  }
+
 }
