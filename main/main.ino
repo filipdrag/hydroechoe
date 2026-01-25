@@ -1,10 +1,10 @@
 #define NO_INPUTS 2
 #define NO_OUTPUTS 3
 
-#define DELAY_MS 100 //TODO calibrate
+#define DELAY_MS 10 //TODO calibrate
 
 #define WH_PIN A0
-#define WH_THRESHOLD 30
+#define WH_THRESHOLD 10
 #define LS_LED_PIN A1
 #define LS_SENSOR_PIN A2
 #define LS_THRESHOLD 170 //TODO turbidity calibration
@@ -59,16 +59,26 @@ void turbidityReading() {
 
 void waterLevelReading() {
   int reading = analogRead(WH_PIN);
-    int abs_change = abs(wh_lastReading - reading);
-    wh_accumulated_change += abs_change - *wh_current;
-    *wh_current = abs_change;
-    wh_current = (wh_current == wh_end) ? wh_start : wh_current + 1;
-    wh_lastReading = reading;
-    wh_isMoving = wh_accumulated_change > WH_THRESHOLD;
-
-    Serial.print(reading);
+  // int abs_change = abs(wh_lastReading - reading);
+  // wh_accumulated_change += abs_change - *wh_current;
+  // *wh_current = abs_change;
+  // wh_current = (wh_current == wh_end) ? wh_start : wh_current + 1;
+  // wh_lastReading = reading;
+  // wh_isMoving = wh_accumulated_change > WH_THRESHOLD;
+  *wh_current = reading;
+  wh_current = (wh_current == wh_end) ? wh_start : wh_current + 1;
+  wh_accumulated_change = 0;
+  for (int i = 1; i < 10; i++) {
+    Serial.print(wh_measurements_queue[i]);
     Serial.print(" ");
-    Serial.print(abs_change);
+    wh_accumulated_change += abs(wh_measurements_queue[i] - wh_measurements_queue[i-1]);
+  }
+  wh_isMoving = wh_accumulated_change > WH_THRESHOLD;
+  Serial.println();
+
+  Serial.print(reading);
+  Serial.print(" ");
+  Serial.print(wh_accumulated_change);
 }
 
 void setColor(int r, int g, int b) {
@@ -149,47 +159,37 @@ void setup() {
 }
 
 void loop() {
-  if(concurrency_input == 0) {
-    Serial.print("\nWH ");
+  Serial.print("\nWH ");
 
-    waterLevelReading();
-    
-    //wh_isMoving = true;
-    if(wh_isMoving) { Serial.print(" Moving"); }
-    else { Serial.print(" Not moving"); }
+  waterLevelReading();
+  
+  //wh_isMoving = true;
+  if(wh_isMoving) { Serial.print(" Moving"); }
+  else { Serial.print(" Not moving"); }
 
-  } else if (concurrency_input == 1) {
-    Serial.print("\nLS ");
-    
-    turbidityReading();
+  Serial.print("\nLS ");
+  
+  turbidityReading();
 
-    if(ls_isMurky) { Serial.print("Murky"); }
-    else { Serial.print("Clear"); }
+  if(ls_isMurky) { Serial.print("Murky"); }
+  else { Serial.print("Clear"); }
+
+
+  Serial.print("\nRGB ");
+  updateRGB();
+  Serial.print("\nBUZ ");
+  updateBuzzer();
+  if (is_buzzing) { Serial.print("Buzzing "); }
+  else { Serial.print('Not buzzing'); }
+  
+  Serial.print("\nVIB ");
+  updateVibration();
+  switch (vib_status) {
+    case 0: Serial.print("Not vibrating "); break;
+    case 1: Serial.print("Low vibration "); break;
+    case 2: Serial.print("Hight vibration "); break;
+    default: Serial.print(vib_status);
   }
-
-  concurrency_input = (concurrency_input + 1) % NO_INPUTS;
-
-  if(concurrency_output == 0) {
-    Serial.print("\nRGB ");
-    updateRGB();
-  } else if (concurrency_output == 1) {
-    Serial.print("\nBUZ ");
-    updateBuzzer();
-    if (is_buzzing) { Serial.print("Buzzing "); }
-    else { Serial.print('Not buzzing'); }
-    
-  } else if (concurrency_output == 2) {
-    Serial.print("\nVIB ");
-    updateVibration();
-    switch (vib_status) {
-      case 0: Serial.print("Not vibrating "); break;
-      case 1: Serial.print("Low vibration "); break;
-      case 2: Serial.print("Hight vibration "); break;
-      default: Serial.print(vib_status);
-    }
-  }
-
-  concurrency_output = (concurrency_output + 1) % NO_OUTPUTS;
-
+  
   delay(DELAY_MS);
 }
