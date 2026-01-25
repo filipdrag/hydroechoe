@@ -11,7 +11,7 @@
 #define RGB_R 11
 #define RGB_G 10
 #define RGB_B 9
-#define VIB_PIN A5
+#define VIB_PIN 3
 #define BUZZ_PIN 6
 
 //CONCURRENCY INIT
@@ -43,6 +43,7 @@ bool ls_isMurky = false;
 // 1 low vibration
 // 2 high vibration
 short int vib_status = 0;
+bool vib_on = false;
 
 //BUZZER OUTPUT
 bool is_buzzing = false;
@@ -84,27 +85,33 @@ void updateRGB() {
     setColor(0, 255, 0);
     Serial.print("CLEAN, MOVING -> GREEN\n");
   } else if ( ls_isMurky && !wh_isMoving ) {
-    setColor(100, 60, 40);
+    setColor(255, 165, 5);
     Serial.print("DIRTY, STILL -> BROWN\n");
   } else if (ls_isMurky && wh_isMoving) {
     setColor(255, 0, 0);
     Serial.print("DIRTY, MOVING -> RED\n");
   }
+  else {
+    setColor(255, 255, 255);
+    Serial.print("wtf bro");
+  }
 }
 
 void updateVibration() {
-  short int prev = vib_status;
+  static unsigned long last_toggle = 0;
+  
+  if(!wh_isMoving) {
+    digitalWrite(VIB_PIN, LOW);
+    vib_on = false;
+    return;
+  }
 
-  if(wh_isMoving) {
-    vib_status = ls_isMurky ? 2 : 1;
-  } else { vib_status = 0; }
-
-  if (vib_status != prev) {
-    switch (vib_status) {
-      case 0: analogWrite(VIB_PIN, LOW); break;
-      case 1: analogWrite(VIB_PIN, 100); break;
-      case 2: analogWrite(VIB_PIN, HIGH); break;
-    }
+  unsigned long interval = ls_isMurky ? 70 : 1000;
+  unsigned long now = millis();
+  if(now - last_toggle >= interval) {
+    vib_on = !vib_on;
+    digitalWrite(VIB_PIN, vib_on ? HIGH : LOW);
+    last_toggle = now;
   }
 }
 
@@ -136,6 +143,9 @@ void setup() {
   pinMode(RGB_R, OUTPUT);
   pinMode(RGB_G, OUTPUT);
   pinMode(RGB_B, OUTPUT);
+
+  pinMode(VIB_PIN, OUTPUT);
+  pinMode(BUZZ_PIN, OUTPUT);
 }
 
 void loop() {
@@ -144,6 +154,7 @@ void loop() {
 
     waterLevelReading();
     
+    //wh_isMoving = true;
     if(wh_isMoving) { Serial.print(" Moving"); }
     else { Serial.print(" Not moving"); }
 
@@ -170,6 +181,12 @@ void loop() {
   } else if (concurrency_output == 2) {
     Serial.print("\nVIB ");
     updateVibration();
+    switch (vib_status) {
+      case 0: Serial.print("Not vibrating "); break;
+      case 1: Serial.print("Low vibration "); break;
+      case 2: Serial.print("Hight vibration "); break;
+      default: Serial.print(vib_status);
+    }
   }
 
   concurrency_output = (concurrency_output + 1) % NO_OUTPUTS;
